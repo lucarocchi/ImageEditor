@@ -1,0 +1,124 @@
+//
+//  TextInput.swift
+//  PKEditor
+//
+//  Created by Luca Rocchi on 21/06/25.
+//
+
+import SwiftUI
+struct TextInput: View {
+    @State private var currentPosition: CGSize = .zero
+    @State private var newPosition: CGSize = .zero
+    @State var inputText = ""
+    @StateObject private var model = EditorModel.shared
+  
+    // --- Passaggio 1: Aggiungi una variabile di stato per il focus ---
+    // Questa variabile terrà traccia di quale campo di testo è attivo.
+    @FocusState private var isTextFieldFocused: Bool
+    
+    var body: some View {
+        TextField("Type some text here...", text: $inputText, axis: .vertical)
+            .font(Font(model.currentFont))
+            .multilineTextAlignment(.leading)
+            .lineLimit(nil)
+            .frame(minWidth:200, maxWidth: 500)
+            .padding(5)
+            .border(Color.accentColor, width: 2)
+            .padding(20)
+            .offset(
+                x: currentPosition.width,
+                y: currentPosition.height)
+            .gesture(DragGesture()
+                .onChanged { value in
+                    currentPosition = CGSize(
+                        width: value.translation.width + newPosition.width,
+                        height: value.translation.height + newPosition.height)
+                }
+                .onEnded { value in
+                    currentPosition = CGSize(
+                        width: value.translation.width + newPosition.width,
+                        height: value.translation.height + newPosition.height)
+                    newPosition = currentPosition
+                }
+            )
+        // --- Passaggio 2: Collega il TextField allo stato del focus ---
+            .focused($isTextFieldFocused)
+            .onAppear {
+                Task{
+                    self.isTextFieldFocused = true
+                }
+            }
+        // --- Passaggio 3: Aggiungi la Toolbar per la tastiera ---
+            .toolbar {
+                // Usiamo un ToolbarItemGroup con la placement specifica '.keyboard'
+                ToolbarItemGroup(placement: .keyboard) {
+                    // Bottone per il Font
+                    Group{
+                        Button {
+                            model.showFontSheet = true
+                            print("Azione per cambiare Font...")
+                        } label: {
+                            Image(systemName: "textformat.characters")
+                        }
+                        /*
+                        // Bottone per lo Stile
+                        Button {
+                            print("Azione per cambiare Stile...")
+                        } label: {
+                            Image(systemName: "bold")
+                        }
+                        
+                        // Bottone per la Dimensione
+                        Button {
+                            print("Azione per cambiare Dimensione...")
+                        } label: {
+                            Image(systemName: "textformat.size")
+                        }
+                        Button {
+                            print("...")
+                        } label: {
+                            Image(systemName: "text.alignleft")
+                        }
+                        */
+                        
+                        Spacer()
+                        Button {
+                            isTextFieldFocused = false
+                            
+                        } label: {
+                            Image(systemName: "xmark")
+                        }
+                        
+                        Button {
+                            isTextFieldFocused = false
+                            if inputText.count > 0 {
+                                let location = model.locationInDrawing
+                                EditorModel.shared.addTextStroke(text: inputText, center: location)
+                            }
+                            EditorModel.shared.showTextInput = false
+                        } label: {
+                            Image(systemName: "return")
+                        }
+                    }
+                    .foregroundStyle(.primary)
+                }
+                
+            }
+            
+       
+        
+    }
+    
+    
+    func enumerateFonts(){
+        
+        for fontFamily in UIFont.familyNames {
+            
+            print("Font family name = \(fontFamily as String)");
+            for fontName in UIFont.fontNames(forFamilyName: fontFamily as String) {
+                print("- Font name = \(fontName)");
+            }
+            print("\n");
+        }
+    }
+}
